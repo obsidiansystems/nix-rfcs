@@ -180,7 +180,7 @@ Dynamic derivations do not suffer from these issues, even though they build on c
 
 - while derivation producing derivations must be content-addressing (since derivations are always content-addressed), the dynamic derivations (outputs of those derivation-producing derivations) themselves can just be input addressed.
 
-We want to continue implementing what we know we will need now outside of Nix, namely in Hydra.
+We want to continue implementing what we knowt  we will need now outside of Nix, namely in Hydra.
 These actually dove-tail perfectly, as Hydra will also be useful for larger-scale experimental builds of Nixpkgs to gather the evidence we need.
 
 ### Hydra support
@@ -195,19 +195,6 @@ We'll do that.
 Hydra has never had support for dynamic derivations, but a chief aim of the new queue runner is for much more efficient handling of many concurrent build jobs.
 This is fantastic timing, as the biggest uncertainty around dynamic derivations is the scalability of many more, smaller derivations.
 Dynamic derivations should also be implemented in Hydra too.
-
-## Out-of-scope for now
-
-### Build trace performance
-
-It is possible for performance we will need to add back in some deep build traces, but this should only be done as an optional caching layer.
-It is deferred for now.
-
-### Garbage collection
-
-Very similarly, there are many possible policies one might wish to have to clean up a shallow build trace.
-Many of these benefit from things like a deep derivation caching layering, to figure out which small steps are relevant to the big steps one conceptually has as GC roots.
-Since there is a wide policy space --- actually it is sound to delete any individual shallow build trace at any time, and since this effectively would depend on a (customizable) versions of the cacheing logic above, this is also deferred for now.
 
 # Examples and Interactions
 [examples-and-interactions]: #examples-and-interactions
@@ -232,18 +219,23 @@ The reader should be convinced that this is indeed the best possible solution fo
 # Prior art
 [prior-art]: #prior-art
 
-You are unlikely to be the first one to tackle this problem.
-Try to dig up earlier discussions around the topic or prior attempts at improving things.
-Summarize, discuss what was good or bad, and compare to the current proposal.
-If applicable, have a look at what other projects and communities are doing.
-You may also discuss related work here, although some of that might be better located in other sections.
+The prior art is our experience with the experiment so far.
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-What parts of the design are still TBD or unknowns?
+The unresolved questions are explicitly part the roadmap, since this proposal is about the process towards an only-partially-determined outcome.
 
 # Future work
 [future]: #future-work
 
-What future work, if any, would be implied or impacted by this feature without being directly part of the work?
+### Build trace performance
+
+It is possible for performance we will need to add back in some deep build traces, but this should only be done as an optional caching layer.
+It is deferred for now.
+
+### Garbage collection
+
+Very similarly, there are many possible policies one might wish to have to clean up a shallow build trace.
+Many of these benefit from things like a deep derivation caching layering, to figure out which small steps are relevant to the big steps one conceptually has as GC roots.
+Since there is a wide policy space --- actually it is sound to delete any individual shallow build trace at any time, and since this effectively would depend on a (customizable) versions of the cacheing logic above, this is also deferred for now.
