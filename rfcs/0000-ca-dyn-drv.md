@@ -22,7 +22,7 @@ This is because we expect --- and want --- a flourishing of different approaches
 This is true both as a whole, and also in terms of underlying networking, scheduling, storage strategies, as there is some independence between these areas, meaning one ought to be able to combine different approaches together, yielding even more combinations.
 
 Because of this, it is useful to get together a few interested parties to decide on what the future should look like.
-These features give a chance to rethink the core interfaces of the "store layer" of Nix (What to derivations look like? What does the binary cache look like?) in a way that will shape the ecosystem for years to come.
+These features give a chance to rethink the core interfaces of the "store layer" of Nix (What do derivations look like? What does the binary cache look like?) in a way that will shape the ecosystem for years to come.
 
 At the same time though, we don't want the perfect to be the enemy of the good.
 We need to "ship" things to get familiarity with them, so that our final decisions can be informed from experience and not just theory alone.
@@ -30,16 +30,16 @@ Otherwise, this stuff will just sit in limbo longer.
 
 As such, this RFC aims to propose a *roadmap* more than final destination.
 It aims to clearly lay out what already makes sense, and should be agreeable to all parties, versus what still lacks consensus, and should be the focus of further exploration.
-By framing the window of debate, the hopes is that we will know about areas we wish to gain more practical experience for, focus on those areas, and quickly be able to approach a final design.
+By framing the window of debate, the hope is that we will know about areas we wish to gain more practical experience for, focus on those areas, and quickly be able to approach a final design.
 
 Any highly technical one-off RFC is going to collect dust.
 What we need instead is a *living* document that will authoritatively standardize the interface for any implementation.
 An official, implementation-agnostic standard would indeed be the best, but in the absence of that, we have the Nix Reference manual.
 The [Store chapter](https://nix.dev/manual/nix/development/store/index.html) in particular has been greatly expanded with details about how content addressing works.
 
-The goal of this RFCs roadmap is lay out TODO
+The goal of this RFC's roadmap is to lay out TODO (what should this lay out?)
 
-# Detailed design and doadmap
+# Detailed design and roadmap
 [design]: #detailed-design
 
 ## Already-made design decisions
@@ -49,21 +49,21 @@ These decisions are informed by the experience we've had in the past few years.
 ### Shallow traces only in the build trace
 
 As described in the manual **TODO link once nix.dev is fixed**, the main *build trace* should only contain resolved derivations for keys.
-This ensures we a complete small step trace which is possible to audit, and makes avoiding various soundness issues much easier.
+This ensures we have a complete small step trace which is possible to audit, and makes avoiding various soundness issues much easier.
 
-The use of shallow traces should better integrate with tools and projects like https://reproducibility.nixos.social/ where is the aim is to track full bit-for-bit reproducibility.
+The use of shallow traces should better integrate with tools and projects like https://reproducibility.nixos.social/ where the aim is to track full bit-for-bit reproducibility.
 
 ### Build trace should use derivation paths
 
 For most of CA derivation's history so far, the build trace has used derivation hashes and not regular store paths for referring to derivations in its keys.
 It is very unwieldy to introduce a second way of addressing derivations not used by the rest of Nix, and, as it turns out, it is also wholly unnecessary.
 
-Allowing with the switch to shallow traces, the switch back to regular derivation paths will soon be implemented.
+Along with the switch to shallow traces, the switch back to regular derivation paths will soon be implemented.
 
 ### RPC to avoid hash rewriting
 
 For the past few years, Nix has readily rewritten outputs for content-addressing derivations.
-This has worked surprisingly well in many cases, but is not sound in general, without Nix understanding every on-disk format it encounters, which is not feasible hard-coded, and too much work for now soft-coded.
+This has worked surprisingly well in many cases, but is not sound in general, without Nix understanding every on-disk format it encounters, which is not feasible if hard-coded, and too much work for now if soft-coded.
 
 For output-to-output references this can be avoided by imperatively submitting outputs to Nix, and getting back store paths on each submission.
 Derivation builders can then use those received store paths to prepare the next output however they like.
@@ -79,7 +79,7 @@ See below for more discussion.
 ### Same RPC for dynamic derivations
 
 Dynamic derivations also needs an RPC to builder.
-And there is must agreement that using the full daemon protocol is overkill and inconvenient.
+And there is much agreement that using the full daemon protocol is overkill and inconvenient.
 Since we need an RPC protocol for content-addressing derivations, per the above, it is a natural choice to also use the same one for this.
 Only one additional operation is needed, which is inserting a derivation.
 
@@ -100,7 +100,7 @@ For input-addressing, it is hard/impossible to change how derivations are hashed
 That would be a big breaking change, and would have to be followed out as a new, opt-in sort of derivation.
 For content-addressing however, the derivation addresses are just used in the build trace, which is easier to migrate.
 
-(For example: Rewriting the build trace, with a signature scheme delegating to the original entries, doubles the size of the build trace, but the build trace is tiny. The store objects themselves (and their content address paths) are not effected by this.)
+(For example: Rewriting the build trace, with a signature scheme delegating to the original entries, doubles the size of the build trace, but the build trace is tiny. The store objects themselves (and their content address paths) are not affected by this.)
 
 As such, switching to content-addressing derivations is the perfect time to rethink the derivations format.
 
@@ -108,8 +108,8 @@ Decisions we might consider:
 
 - Get rid of ATerm.
 
-  Eelco Visser had nice ambitions for A-Term to become a widely-use serialization format, but JSON has largely one the niche it was aiming for.
-  A new JSON format should use something widely used, even JSON is not appropriate for various reasons.
+  Eelco Visser had nice ambitions for A-Term to become a widely-used serialization format, but JSON has largely won the niche it was aiming for.
+  A new JSON format should use something widely used, even if JSON is not appropriate for various reasons.
 
 - Derivation options should be represented explicitly
 
@@ -127,8 +127,8 @@ We can instead see content-addressing as beginning a brief period of experimenta
 ### Build trace signature format
 
 Even after the switch to shallow traces and derivation format keys is implemented, the existing build trace format will still have some other questionable decisions.
-For example, separate outputs are still signed separately, even thought they are all built together.
-Also the signature schema is rudimentary, and not forwards compatible with more flexible attestations/provenance (e.g. chain of trust "I am sign this because I trust this other public key which signed it").
+For example, separate outputs are still signed separately, even though they are all built together.
+Also the signature schema is rudimentary, and not forwards compatible with more flexible attestations/provenance (e.g. chain of trust "I am signing this because I trust this other public key which signed it").
 
 We should incorporate the lessons of https://github.com/mschwaig/laut in making a much more robust signature scheme.
 
@@ -143,7 +143,7 @@ And currently, Nixpkgs is full of self-references.
 There are a few ways this can play out:
 
 - We get rid of all self-references in Nixpkgs.
-  The new RPC format and content-addresssing works for everything.
+  The new RPC format and content-addressing works for everything.
 
   This would be fantastic, but it would involve significant effort on the part of Nixpkgs maintainers patching software.
   It is something that, at best, would happen slowly over a long period of time.
@@ -159,7 +159,7 @@ There are a few ways this can play out:
 
 The last case puts the least amount of work on Nixpkgs.
 But it does incur a large conceptual cost in Nix.
-This is because, in order to properly support input-addressing in a world where we care mount of trust and attestation (i.e. many of the things we want to get out of content-addressing, in addition to faster rebuilds), we have to switch to switch store models.
+This is because, in order to properly support input-addressing in a world where we care about trust and attestation (i.e. many of the things we want to get out of content-addressing, in addition to faster rebuilds), we have to switch store models.
 Instead of stores having a *set* of store objects, they need to have a *map*, where the store paths of store objects are not determined by the store objects themselves, but are separate freely-varying data.
 
 I have [some design work](https://github.com/obsidiansystems/nix/tree/closure-integrity) on this front.
@@ -173,20 +173,20 @@ It would be nice to avoid this outcome, but to actually do so, we will need more
 
 For content-addressing derivations, the next main goal is to gather the evidence needed to decide on the best way forward for the self-references question above.
 
-But note also that the design uncertainly above *only* effects content-addressing *arbitrary* derivations outputs.
+But note also that the design uncertainty above *only* affects content-addressing *arbitrary* derivation outputs.
 Dynamic derivations do not suffer from these issues, even though they build on content-addressing:
 
-- derivations never have self-references (this has always been true), so the problem doesn't effect them
+- derivations never have self-references (this has always been true), so the problem doesn't affect them
 
 - while derivation producing derivations must be content-addressing (since derivations are always content-addressed), the dynamic derivations (outputs of those derivation-producing derivations) themselves can just be input addressed.
 
-We want to continue implementing what we knowt  we will need now outside of Nix, namely in Hydra.
+We want to continue implementing what we know we will need now outside of Nix, namely in Hydra.
 These actually dove-tail perfectly, as Hydra will also be useful for larger-scale experimental builds of Nixpkgs to gather the evidence we need.
 
 ### Hydra support
 
 Hydra is currently undergoing a major overhaul with a new "queue runner" implementation in Rust.
-This should soon (late December / early January) put into production (hydra.nixos.org).
+This should soon (late December / early January) be put into production (hydra.nixos.org).
 Atop that is the perfect time to implement new features, and a much easier to maintain foundation.
 
 Hydra has had some content-addressing support for a while, but with the build trace change described above that we've already committed to, this will need to be reworked.
@@ -199,7 +199,7 @@ Dynamic derivations should also be implemented in Hydra too.
 # Examples and Interactions
 [examples-and-interactions]: #examples-and-interactions
 
-This section illustrates the detailed design.
+TODO: This section illustrates the detailed design.
 This section should clarify all confusion the reader has from the previous sections.
 It is especially important to counterbalance the desired terseness of the detailed design;
 if you feel your detailed design is rudely short, consider making this section longer instead.
@@ -207,12 +207,12 @@ if you feel your detailed design is rudely short, consider making this section l
 # Drawbacks
 [drawbacks]: #drawbacks
 
-What are the disadvantages of doing this?
+TODO: What are the disadvantages of doing this?
 
 # Alternatives
 [alternatives]: #alternatives
 
-What other designs have been considered? What is the impact of not doing this?
+TODO: What other designs have been considered? What is the impact of not doing this?
 For each design decision made, discuss possible alternatives and compare them to the chosen solution.
 The reader should be convinced that this is indeed the best possible solution for the problem at hand.
 
@@ -224,18 +224,18 @@ The prior art is our experience with the experiment so far.
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-The unresolved questions are explicitly part the roadmap, since this proposal is about the process towards an only-partially-determined outcome.
+The unresolved questions are explicitly part of the roadmap, since this proposal is about the process towards an only-partially-determined outcome.
 
 # Future work
 [future]: #future-work
 
 ### Build trace performance
 
-It is possible for performance we will need to add back in some deep build traces, but this should only be done as an optional caching layer.
+It is possible that for performance reasons we will need to add back in some deep build traces, but this should only be done as an optional caching layer.
 It is deferred for now.
 
 ### Garbage collection
 
 Very similarly, there are many possible policies one might wish to have to clean up a shallow build trace.
 Many of these benefit from things like a deep derivation caching layering, to figure out which small steps are relevant to the big steps one conceptually has as GC roots.
-Since there is a wide policy space --- actually it is sound to delete any individual shallow build trace at any time, and since this effectively would depend on a (customizable) versions of the cacheing logic above, this is also deferred for now.
+Since there is a wide policy space --- actually it is sound to delete any individual shallow build trace at any time, and since this effectively would depend on a (customizable) versions of the caching logic above, this is also deferred for now.
