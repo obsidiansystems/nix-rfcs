@@ -37,7 +37,7 @@ What we need instead is a *living* document that will authoritatively standardiz
 An official, implementation-agnostic standard would indeed be the best, but in the absence of that, we have the Nix Reference manual.
 The [Store chapter](https://nix.dev/manual/nix/development/store/index.html) in particular has been greatly expanded with details about how content addressing works.
 
-The goal of this RFC's roadmap is to lay out TODO (what should this lay out?)
+The goal of this RFC's roadmap is to lay out what we should do next in order to answer the remaining questions and ship something.
 
 # Detailed design and roadmap
 [design]: #detailed-design
