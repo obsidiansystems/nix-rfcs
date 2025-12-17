@@ -196,6 +196,18 @@ Hydra has never had support for dynamic derivations, but a chief aim of the new 
 This is fantastic timing, as the biggest uncertainty around dynamic derivations is the scalability of many more, smaller derivations.
 Dynamic derivations should also be implemented in Hydra too.
 
+### Evaluate self-references situation
+
+Interested parties should support standing up hydra builders (perhaps we can use the staging hydra instance too) to try doing at-scale CA building of Nixpkgs.
+We can evaluate the self-references situation as described above to figure out which solution we should pursue.
+
+### Evaluate dynamic derivations situation
+
+We should nixify some infamously large projects like Chromium to see how dynamic derivations scale for the sheer number of derivations.
+
+At the same time, Nix itself should dogfood dynamic derivations (and Hydra) for its own PR CI, to study not the sheer number of derivations but the latency for practical purposes (local dev and CI).
+(The Nix team should already be dogfooding hydra because GitHub Actions are slow and miss things.)
+
 # Examples and Interactions
 [examples-and-interactions]: #examples-and-interactions
 
