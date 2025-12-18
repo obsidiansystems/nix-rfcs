@@ -17,9 +17,10 @@ Finishing, and then stabilizing, [content-addressed derivations] and [dynamic de
 [motivation]: #motivation
 
 [Content-addressing][content-address] and [dynamic derivations][dyn-drv] have both sat around in a partial state of completion in Nix for quite some time.
-Unlike other longstanding experimental features like Flakes, however, they are an important synchronization point for multiple and new implementations on an ongoing basis.
+Unlike other longstanding experimental features like Flakes, however, the store layer and thus these features are and will remain an important synchronization point for many implementations, on an ongoing basis.
 This is because we expect --- and want --- a flourishing of different approaches to implementing builds.
-This is true both as a whole, and also in terms of underlying networking, scheduling, storage strategies, as there is some independence between these areas, meaning one ought to be able to combine different approaches together, yielding even more combinations.
+And because "implementing builds" can be broken down into different approaches for underlying networking, scheduling, storage strategies, as there is some independence of the implementation strategy in each of these, one ought to be able to combine different approaches together, yielding even more combinations.
+This only heightens the cross-cutting nature of these interfaces, and the need to get them right.
 
 Because of this, it is useful to get together a few interested parties to decide on what the future should look like.
 These features give a chance to rethink the core interfaces of the "store layer" of Nix (What do derivations look like? What does the binary cache look like?) in a way that will shape the ecosystem for years to come.
@@ -37,7 +38,8 @@ What we need instead is a *living* document that will authoritatively standardiz
 An official, implementation-agnostic standard would indeed be the best, but in the absence of that, we have the Nix Reference manual.
 The [Store chapter] in particular has been greatly expanded with details about how content addressing works.
 
-The goal of this RFC's roadmap is to lay out what we should do next in order to answer the remaining questions and ship something.
+The goal of this RFC's roadmap is to lay out what we should do next in order to answer the remaining questions, ship working implementations, and, eventually, agree on a final specification for stabilization.
+With an agreed upon process, we should be able to do all of the above successfully, and fairly quickly.
 
 # Detailed design and roadmap
 [design]: #detailed-design
@@ -49,6 +51,7 @@ These decisions are informed by the experience we've had in the past few years.
 ### Shallow traces only in the build trace
 
 As described in the [manual][build-trace] (see also [#11896]), the main *build trace* should only contain resolved derivations for keys.
+(In the [Build Systems à la Carte] paper terminology, these are called "shallow traces".)
 This ensures we have a complete small step trace which is possible to audit, and makes avoiding various soundness issues much easier.
 
 The use of shallow traces should better integrate with tools and projects like https://reproducibility.nixos.social/ where the aim is to track full bit-for-bit reproducibility.
@@ -69,7 +72,7 @@ For output-to-output references this can be avoided by imperatively submitting o
 Derivation builders can then use those received store paths to prepare the next output however they like.
 
 We have a draft of what the RPC layer should look like in [PR #13768].
-This currently uses [Varlink], which as an easy-to-use style of JSON RPC.
+This currently uses [Varlink], which is an easy-to-use style of JSON RPC.
 Ease of use is an important concern since arbitrary user-written derivations would be using this format.
 
 Self references however are not addressed with this approach.
@@ -78,7 +81,7 @@ See below for more discussion.
 
 ### Same RPC for dynamic derivations
 
-Dynamic derivations also needs an RPC to builder.
+Dynamic derivations also need RPC for the builder to use.
 And there is much agreement that using the full daemon protocol is overkill and inconvenient.
 Since we need an RPC protocol for content-addressing derivations, per the above, it is a natural choice to also use the same one for this.
 Only one additional operation is needed, which is inserting a derivation.
@@ -97,7 +100,7 @@ These decisions still need to be informed by remaining implementation work.
 ### Canonical derivation format / addressing of derivations
 
 For input-addressing, it is hard/impossible to change how derivations are hashed/addressed without changing output paths.
-That would be a big breaking change, and would have to be followed out as a new, opt-in sort of derivation.
+That would be a big breaking change, and would have to be carried out as a new, opt-in sort of derivation.
 For content-addressing however, the derivation addresses are just used in the build trace, which is easier to migrate.
 
 (For example: Rewriting the build trace, with a signature scheme delegating to the original entries, doubles the size of the build trace, but the build trace is tiny. The store objects themselves (and their content address paths) are not affected by this.)
@@ -106,10 +109,10 @@ As such, switching to content-addressing derivations is the perfect time to reth
 
 Decisions we might consider:
 
-- Get rid of ATerm.
+- Get rid of [ATerm].
 
-  Eelco Visser had nice ambitions for A-Term to become a widely-used serialization format, but JSON has largely won the niche it was aiming for.
-  A new JSON format should use something widely used, even if JSON is not appropriate for various reasons.
+  Eelco Visser had nice ambitions for ATerm to become a widely-used serialization format, but JSON has largely won the niche it was aiming for.
+  A new derivation format should use something widely used, even if JSON is not appropriate for various reasons.
 
 - Derivation options should be represented explicitly
 
@@ -126,7 +129,7 @@ We can instead see content-addressing as beginning a brief period of experimenta
 
 ### Build trace signature format
 
-Even after the switch to shallow traces and derivation format keys is implemented, the existing build trace format will still have some other questionable decisions.
+Even after the switch to shallow traces and derivation path keys is implemented, the existing build trace format will still have some other questionable decisions.
 For example, separate outputs are still signed separately, even though they are all built together.
 Also the signature schema is rudimentary, and not forwards compatible with more flexible attestations/provenance (e.g. chain of trust "I am signing this because I trust this other public key which signed it").
 
@@ -153,7 +156,7 @@ There are a few ways this can play out:
   Self-reference support via rewriting is used where possible (most cases).
   The remaining cases where it doesn't work, software is patched to not require self-references instead.
 
-  This is more feasible, but it is still unknown how common the rewriting-defeating self reference are.
+  This is more feasible, but it is still unknown how common the rewriting-defeating self references are.
 
 - We have many rewriting-defeating self-references, more than we can patch, and we still use input-addressing in this case.
 
@@ -181,20 +184,20 @@ Dynamic derivations do not suffer from these issues, even though they build on c
 - while derivation producing derivations must be content-addressing (since derivations are always content-addressed), the dynamic derivations (outputs of those derivation-producing derivations) themselves can just be input addressed.
 
 We want to continue implementing what we know we will need now outside of Nix, namely in Hydra.
-These actually dove-tail perfectly, as Hydra will also be useful for larger-scale experimental builds of Nixpkgs to gather the evidence we need.
+These actually dovetail perfectly, as Hydra will also be useful for larger-scale experimental builds of Nixpkgs to gather the evidence we need.
 
 ### Hydra support
 
 Hydra is currently undergoing a major overhaul with a new "queue runner" implementation in Rust.
 This should soon (late December / early January) be put into production (hydra.nixos.org).
-Atop that is the perfect time to implement new features, and a much easier to maintain foundation.
+After they land, it is the perfect time to implement new features, now atop a much easier to maintain foundation.
 
 Hydra has had some content-addressing support for a while, but with the build trace change described above that we've already committed to, this will need to be reworked.
 We'll do that.
 
 Hydra has never had support for dynamic derivations, but a chief aim of the new queue runner is for much more efficient handling of many concurrent build jobs.
 This is fantastic timing, as the biggest uncertainty around dynamic derivations is the scalability of many more, smaller derivations.
-Dynamic derivations should also be implemented in Hydra too.
+Dynamic derivations should be implemented in Hydra too, after its content-addressing support is reworked.
 
 ### Evaluate self-references situation
 
@@ -211,22 +214,20 @@ At the same time, Nix itself should dogfood dynamic derivations (and Hydra) for 
 # Examples and Interactions
 [examples-and-interactions]: #examples-and-interactions
 
-TODO: This section illustrates the detailed design.
-This section should clarify all confusion the reader has from the previous sections.
-It is especially important to counterbalance the desired terseness of the detailed design;
-if you feel your detailed design is rudely short, consider making this section longer instead.
+The interactions are numerous since so many tools implement or use the Nix store layer interfaces in whole or part.
+The roadmap tries to cover some of these tools and the work that needs to be done to bring up their support for the latest designs.
 
 # Drawbacks
 [drawbacks]: #drawbacks
 
-TODO: What are the disadvantages of doing this?
+There isn't much of a disadvantage, other than that doing the work requires time and effort.
+The benefits of these architectural changes regarding security and incrementality are very strong.
 
 # Alternatives
 [alternatives]: #alternatives
 
-TODO: What other designs have been considered? What is the impact of not doing this?
-For each design decision made, discuss possible alternatives and compare them to the chosen solution.
-The reader should be convinced that this is indeed the best possible solution for the problem at hand.
+The roadmap is fairly open ended already, so I find it a bit hard to think of yet more alternatives.
+Of course, if anything comes up during the RFC process we can fill this section in accordingly.
 
 # Prior art
 [prior-art]: #prior-art
@@ -250,7 +251,7 @@ It is deferred for now.
 
 Very similarly, there are many possible policies one might wish to have to clean up a shallow build trace.
 Many of these benefit from things like a deep derivation caching layering, to figure out which small steps are relevant to the big steps one conceptually has as GC roots.
-Since there is a wide policy space --- actually it is sound to delete any individual shallow build trace at any time, and since this effectively would depend on a (customizable) versions of the caching logic above, this is also deferred for now.
+Since there is a wide policy space --- actually it is sound to delete any individual shallow build trace at any time, and since this effectively would depend on (customizable) versions of the caching logic above, this is also deferred for now.
 
 <!-- Link references -->
 [content-addressed derivations]: https://releases.nixos.org/nix/nix-2.33.0/manual/development/experimental-features.html#xp-feature-ca-derivations
@@ -266,3 +267,5 @@ Since there is a wide policy space --- actually it is sound to delete any indivi
 [Varlink]: https://varlink.org/
 [laut]: https://github.com/mschwaig/laut
 [closure-integrity]: https://github.com/obsidiansystems/nix/tree/closure-integrity
+[Build Systems à la Carte]: https://dl.acm.org/doi/10.1145/3236774
+[ATerm]: https://releases.nixos.org/nix/nix-2.33.0/manual/protocols/derivation-aterm.html
