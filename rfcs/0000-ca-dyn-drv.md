@@ -131,9 +131,10 @@ We can instead see content-addressing as beginning a brief period of experimenta
 
 Even after the switch to shallow traces and derivation path keys is implemented, the existing build trace format will still have some other questionable decisions.
 For example, separate outputs are still signed separately, even though they are all built together.
-Also the signature schema is rudimentary, and not forwards compatible with more flexible attestations/provenance (e.g. chain of trust "I am signing this because I trust this other public key which signed it").
+Also the signature schema is rudimentary, and not yet compatible with requirements around attribution, reproducibility-verification and remote attestation.
 
 We should incorporate the lessons of [laut] in making a much more robust signature scheme.
+A flexible signature scheme will allow us to evolve critical parts of the ecosystem over time, while hinging trust exclusively on the content-address based identity of build inputs will allow for evolution and diversification in which parties and attesation mechanisms users consider trusted.
 
 Note: This will probably result in Nix's "build result" data structure starting to look more like the build trace, and vice-versa.
 
@@ -162,7 +163,9 @@ There are a few ways this can play out:
 
 The last case puts the least amount of work on Nixpkgs.
 But it does incur a large conceptual cost in Nix.
-This is because, in order to properly support input-addressing in a world where we care about trust and attestation (i.e. many of the things we want to get out of content-addressing, in addition to faster rebuilds), we have to switch store models.
+This is because, in order to properly support input-addressing in a world where we care about trust and attestation (i.e. many of the things we want to get out of content-addressing, in addition to faster rebuilds), input-addressed paths as inputs to content-addressing derivations, represent a problematic knowledge gap about the bitwise identity of that particular input.
+To close this gap, stores need to keep track of this missing information.
+In that sense, we have to switch store models.
 Instead of stores having a *set* of store objects, they need to have a *map*, where the store paths of store objects are not determined by the store objects themselves, but are separate freely-varying data.
 
 I have [some design work][closure-integrity] on this front.
@@ -181,7 +184,7 @@ Dynamic derivations do not suffer from these issues, even though they build on c
 
 - derivations never have self-references (this has always been true), so the problem doesn't affect them
 
-- while derivation producing derivations must be content-addressing (since derivations are always content-addressed), the dynamic derivations (outputs of those derivation-producing derivations) themselves can just be input addressed.
+- while derivation producing derivations must be content-addressing (since derivations are always content-addressed), the dynamic derivations (outputs of those derivation-producing derivations) themselves could just be input addressed.
 
 We want to continue implementing what we know we will need now outside of Nix, namely in Hydra.
 These actually dovetail perfectly, as Hydra will also be useful for larger-scale experimental builds of Nixpkgs to gather the evidence we need.
@@ -202,7 +205,7 @@ Dynamic derivations should be implemented in Hydra too, after its content-addres
 ### Evaluate self-references situation
 
 Interested parties should support standing up hydra builders (perhaps we can use the staging hydra instance too) to try doing at-scale CA building of Nixpkgs.
-We can evaluate the self-references situation as described above to figure out which solution we should pursue.
+This allows us to evaluate the self-references situation as described above to figure out which solution we should pursue.
 
 ### Evaluate dynamic derivations situation
 
@@ -232,7 +235,9 @@ Of course, if anything comes up during the RFC process we can fill this section 
 # Prior art
 [prior-art]: #prior-art
 
-The prior art is our experience with the experiment so far.
+* The prior art is our experience with the experiment so far.
+
+* [laut]
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
